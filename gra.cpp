@@ -1,145 +1,168 @@
 #include <iostream>
-#include <vector>
-#include <windows.h>
-#include <conio.h>
-#include <ctime>
 
 using namespace std;
 
-const int WIDTH = 60;
-const int HEIGHT = 20;
-
-struct Player
+// Funkcja rysująca planszę
+void wyswietlPlansze(char plansza[3][3])
 {
-    float y;
-    float velocity;
-};
+    cout << "\n";
+
+    for(int i = 0; i < 3; i++)
+    {
+        cout << " ";
+
+        for(int j = 0; j < 3; j++)
+        {
+            cout << plansza[i][j];
+
+            if(j < 2)
+            {
+                cout << " | ";
+            }
+        }
+
+        cout << "\n";
+
+        if(i < 2)
+        {
+            cout << "---+---+---\n";
+        }
+    }
+
+    cout << "\n";
+}
+
+// Funkcja sprawdzająca zwycięstwo
+bool czyWygrana(char plansza[3][3], char gracz)
+{
+    // Wiersze
+    for(int i = 0; i < 3; i++)
+    {
+        if(plansza[i][0] == gracz &&
+           plansza[i][1] == gracz &&
+           plansza[i][2] == gracz)
+        {
+            return true;
+        }
+    }
+
+    // Kolumny
+    for(int j = 0; j < 3; j++)
+    {
+        if(plansza[0][j] == gracz &&
+           plansza[1][j] == gracz &&
+           plansza[2][j] == gracz)
+        {
+            return true;
+        }
+    }
+
+    // Przekątna główna
+    if(plansza[0][0] == gracz &&
+       plansza[1][1] == gracz &&
+       plansza[2][2] == gracz)
+    {
+        return true;
+    }
+
+    // Przekątna poboczna
+    if(plansza[0][2] == gracz &&
+       plansza[1][1] == gracz &&
+       plansza[2][0] == gracz)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+// Funkcja sprawdzająca remis
+bool czyRemis(char plansza[3][3])
+{
+    for(int i = 0; i < 3; i++)
+    {
+        for(int j = 0; j < 3; j++)
+        {
+            if(plansza[i][j] == ' ')
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
 
 int main()
 {
-    srand((unsigned)time(nullptr));
-
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    // Ukrycie kursora
-    CONSOLE_CURSOR_INFO cursorInfo;
-    GetConsoleCursorInfo(hConsole, &cursorInfo);
-    cursorInfo.bVisible = false;
-    SetConsoleCursorInfo(hConsole, &cursorInfo);
-
-    Player player;
-    player.y = HEIGHT / 2;
-    player.velocity = 0;
-
-    vector<int> gapCenter(WIDTH, HEIGHT / 2);
-
-    int score = 0;
-    int frame = 0;
-    bool gameOver = false;
-
-    while (!gameOver)
+    char plansza[3][3] =
     {
-        frame++;
+        {' ', ' ', ' '},
+        {' ', ' ', ' '},
+        {' ', ' ', ' '}
+    };
 
-        // Sterowanie
-        if (_kbhit())
+    char aktualnyGracz = 'X';
+
+    int wiersz;
+    int kolumna;
+
+    cout << "=== KOLKO I KRZYZYK ===\n";
+
+    while(true)
+    {
+        wyswietlPlansze(plansza);
+
+        cout << "Gracz " << aktualnyGracz << "\n";
+        cout << "Podaj wiersz (1-3): ";
+        cin >> wiersz;
+
+        cout << "Podaj kolumne (1-3): ";
+        cin >> kolumna;
+
+        wiersz--;
+        kolumna--;
+
+        // Sprawdzenie zakresu
+        if(wiersz < 0 || wiersz > 2 ||
+           kolumna < 0 || kolumna > 2)
         {
-            char key = _getch();
-
-            if (key == 'w' || key == 'W')
-            {
-                player.velocity -= 0.7f;
-
-                if (player.velocity < -1.5f)
-                    player.velocity = -1.5f;
-            }
+            cout << "\nNieprawidlowe pole!\n\n";
+            continue;
         }
 
-        // Grawitacja
-        player.velocity += 0.08f;
-        player.y += player.velocity;
-
-        // Przesuwanie tunelu
-        for (int i = 0; i < WIDTH - 1; i++)
+        // Sprawdzenie zajętego pola
+        if(plansza[wiersz][kolumna] != ' ')
         {
-            gapCenter[i] = gapCenter[i + 1];
+            cout << "\nTo pole jest juz zajete!\n\n";
+            continue;
         }
 
-        if (frame < 80) // oko�o 5 sekund spokoju
+        plansza[wiersz][kolumna] = aktualnyGracz;
+
+        if(czyWygrana(plansza, aktualnyGracz))
         {
-            gapCenter[WIDTH - 1] = HEIGHT / 2;
+            wyswietlPlansze(plansza);
+            cout << "Gracz " << aktualnyGracz << " wygrywa!\n";
+            break;
+        }
+
+        if(czyRemis(plansza))
+        {
+            wyswietlPlansze(plansza);
+            cout << "Remis!\n";
+            break;
+        }
+
+        if(aktualnyGracz == 'X')
+        {
+            aktualnyGracz = 'O';
         }
         else
         {
-            int newGap = gapCenter[WIDTH - 2] + (rand() % 3 - 1);
-
-            if (newGap < 6)
-                newGap = 6;
-
-            if (newGap > HEIGHT - 7)
-                newGap = HEIGHT - 7;
-
-            gapCenter[WIDTH - 1] = newGap;
+            aktualnyGracz = 'X';
         }
-
-        // Rysowanie
-        string screen;
-
-        for (int y = 0; y < HEIGHT; y++)
-        {
-            for (int x = 0; x < WIDTH; x++)
-            {
-                int gapTop = gapCenter[x] - 5;
-                int gapBottom = gapCenter[x] + 5;
-
-                if (x == 10 && y == (int)player.y)
-                {
-                    screen += ">";
-                }
-                else if (y < gapTop || y > gapBottom)
-                {
-                    screen += "#";
-                }
-                else
-                {
-                    screen += " ";
-                }
-            }
-
-            screen += '\n';
-        }
-
-        COORD pos = {0, 0};
-        SetConsoleCursorPosition(hConsole, pos);
-
-        cout << screen;
-        cout << "Punkty: " << score << "\n";
-        cout << "Sterowanie: W = gora\n";
-
-        // Kolizja
-        int playerX = 10;
-
-        int gapTop = gapCenter[playerX] - 5;
-        int gapBottom = gapCenter[playerX] + 5;
-
-        if (player.y < gapTop || player.y > gapBottom)
-            gameOver = true;
-
-        if (player.y < 0 || player.y >= HEIGHT)
-            gameOver = true;
-
-        score++;
-
-        Sleep(60);
     }
 
-    system("cls");
-
-    cout << "=================================\n";
-    cout << "         GAME OVER\n";
-    cout << "=================================\n";
-    cout << "Twoj wynik: " << score << "\n\n";
-
-    system("pause");
     return 0;
 }
